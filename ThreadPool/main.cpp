@@ -23,14 +23,14 @@ Any run()
 	}
 	return  sum;
 }
-	mytaks();
+    mytaks(int b, int e) ;
 	~mytaks();
 private:
 	int  begin_;
 	int  end_;
 
 };
-mytaks::mytaks()
+mytaks::mytaks(int b, int e) :begin_(b), end_(e) 
 {
 	
 }
@@ -47,11 +47,17 @@ int main()
 {
 	ThreadPool pool;
 	pool.start(4);
-	std::shared_ptr<Task>mytask_ = std::make_shared<mytaks>();
+	std::shared_ptr<Task>mytask_ = std::make_shared<mytaks>(1,100);
 	pool.submitTask(mytask_);
 	pool.submitTask(mytask_);
 	pool.submitTask(mytask_);
-	Result res= pool.submitTask(std::make_shared<mytaks>());
+
+	
+	Result res= pool.submitTask(std::make_shared<mytaks>(1,300));
+	int sum=res.getValue().cast_<int>();
+
+	std::cout << "sum=" << sum << std::endl;
+
 	std::this_thread::sleep_for(std::chrono::seconds(5));
 	return 0;
 }

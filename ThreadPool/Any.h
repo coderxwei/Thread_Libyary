@@ -15,6 +15,7 @@ public:
 
 	Any& operator=( Any&&) = default;
 
+	//构造函数
 	template<typename T>
 	Any(T data) : base_(std::make_unique<Drive<T>>(data))
 	{
@@ -24,7 +25,7 @@ public:
 	template<typename T>
 	T cast_()
 	{
-		//RTTI 机制。
+		//RTTI 机制。---父类指针执行子类的对象。
 		Drive<T>* pd = dynamic_cast<Drive<T>*> (base_.get());
 		//
 		if (pd==nullptr)
@@ -46,7 +47,7 @@ private:
 	{
 	public:
 		Drive(T data) :data_(data) {};
-	private:
+	
 		T data_;
 	};
 private:

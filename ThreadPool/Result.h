@@ -20,7 +20,7 @@ public:
 	{
 		if (!is_valid_)
 		{
-			return  "";
+			return  NULL;
 		}
 		//task：任务如果没有执行完毕就会阻塞。
 		semaphore_.wait_();
