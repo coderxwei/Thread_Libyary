@@ -28,9 +28,6 @@ public:
 			condition_.notify_all();
 		}
 	};
-
-
-
 private:
 	int resLimit_;
 	std::mutex mutex_;

@@ -47,7 +47,10 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Any.cpp">
+    <ClCompile Include="Result.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Semaphore.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

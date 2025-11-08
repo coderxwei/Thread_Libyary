@@ -1,7 +1,8 @@
 #pragma once
 #include "Any.h"
-#include "Result.h"
 
+
+class Result;
 class Task
 {
 public:
@@ -12,3 +13,8 @@ public:
 private:
 	Result* result_;
 };
+ inline Task::Task()
+{
+	
+}
+

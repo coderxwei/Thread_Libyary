@@ -30,6 +30,18 @@ private:
 	int  end_;
 
 };
+mytaks::mytaks()
+{
+	
+}
+mytaks::~mytaks()
+{
+	
+}
+
+
+
+
 
 int main()
 {
@@ -39,7 +51,7 @@ int main()
 	pool.submitTask(mytask_);
 	pool.submitTask(mytask_);
 	pool.submitTask(mytask_);
-	Result res= pool.submitTask(mytask_);
+	Result res= pool.submitTask(std::make_shared<mytaks>());
 	std::this_thread::sleep_for(std::chrono::seconds(5));
 	return 0;
 }
