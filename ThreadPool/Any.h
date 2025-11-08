@@ -51,5 +51,6 @@ private:
 	};
 private:
 	std::unique_ptr<Base> base_;
+	int  sun;
 };
 

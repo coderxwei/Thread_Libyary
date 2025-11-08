@@ -1,6 +1,5 @@
 #pragma once
 #include "ThreadPool.h"
-
 #include <functional>
 #include <iostream>
 #include  "Result.h"
@@ -106,7 +105,9 @@ void ThreadPool::ThreadHandler_()
 		if (task != nullptr)
 			{
 			std::shared_ptr<Task> t = task;
-			t->run();
+
+			t->exec();
+			//t->run();
 
 			}
 	}

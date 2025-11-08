@@ -12,9 +12,10 @@ public:
 	{
 
 		std::unique_lock<std::mutex>lock(mutex_);
+		// 当lamda 表达式为真的时候线程继续往下执行，
 		condition_.wait(lock, [&]()->bool
 			{
-				return  resLimit_ >= 0;
+				return  resLimit_ > 0;
 
 			});
 		resLimit_--;
@@ -24,7 +25,7 @@ public:
 	{
 		{
 			std::unique_lock<std::mutex>lock(mutex_);
-			resLimit_++;
+			resLimit_++; //表示资源的数量
 			condition_.notify_all();
 		}
 	};
