@@ -9,8 +9,8 @@ class Task;
 //开启线程池
 void ThreadPool::start(int initTthread_num)
 {
-
-	for (int i=0 ;i< initTthread_num;i++)
+	bootRuning_ = true; //启动线程池
+	for(int i=0 ;i< initTthread_num;i++)
 	{
 		auto thread_ptr = std::make_unique<Thread>(std::bind(&ThreadPool::ThreadHandler_, this));
 		threads_.emplace_back(std::move(thread_ptr));
@@ -26,7 +26,8 @@ thread_sum_(4),
 initThreadnum_(4),
 task_sum_(0),
 poolMode_(Pool::fixed),
-taskSetTheadHold(TASK_MAX)
+taskSetTheadHold(TASK_MAX),
+bootRuning_(false)
 {
 	//taskSetTheadHold = 1024;
 }

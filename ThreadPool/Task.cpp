@@ -13,5 +13,6 @@
 }
  void Task::setResult(Result* res)
 {
-	result_ = res;
+	 
+	result_ = res; 
 }

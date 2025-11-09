@@ -45,6 +45,7 @@ private:
 	std::atomic_uint task_sum_;  //任务的数量
 	int taskSetTheadHold;        //线程中任务队列的阈值。
 	enum Pool  poolMode_;        //记录当前线程的模式。
+	std::atomic_bool bootRuning_;  //线程池是否正在运行。
 	//拷贝构造
 	
 };
