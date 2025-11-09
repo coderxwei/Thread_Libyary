@@ -14,10 +14,12 @@ void ThreadPool::start(int initTthread_num)
 	{
 		auto thread_ptr = std::make_unique<Thread>(std::bind(&ThreadPool::ThreadHandler_, this));
 		threads_.emplace_back(std::move(thread_ptr));
+		total_thread_++;//线程的总数量++;
 	}
 	for (int i=0; i< initTthread_num;i++)
 	{
 		threads_[i]->start();
+		idleTheadsum_++;  //记录空闲线程任务的适量
 	}
 }
 //有参构造函数
@@ -27,7 +29,10 @@ initThreadnum_(4),
 task_sum_(0),
 poolMode_(Pool::fixed),
 taskSetTheadHold(TASK_MAX),
-bootRuning_(false)
+bootRuning_(false),
+idleTheadsum_(0),
+threadSizeHold_(30),
+total_thread_(0)
 {
 	//taskSetTheadHold = 1024;
 }
@@ -50,6 +55,20 @@ void ThreadPool::setTaskinit(int sum)
 }
 
 
+void ThreadPool::setTheadsizeHold(int size)
+{
+	if (bootRuning_)
+	{
+		return;
+	}
+	//必须在cached 模式下才能设置线程的数量.
+	if (poolMode_==Pool::cached)
+	{
+		threadSizeHold_ = size;
+	}
+	
+}
+
 //提交任务
 Result ThreadPool::submitTask(std::shared_ptr<Task> tp)
 {
@@ -69,6 +88,20 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> tp)
 		task_queue_.emplace(tp);
 		task_sum_++;
 		cond_not_empty.notify_all();
+		//切换到Cahed 模式--任务处理比较紧急，场景:小而块的任务。 需要genju 任务的数量和空闲线程的数量，判断是否需要切换到cached模型
+		/*  线程池的模式必须是cached
+		 *	任务的数量必须大于空闲线程的数量
+		 *	当前线程的总数量必须小于线程数量的上线
+		 */
+		if (poolMode_==Pool::cached &&task_sum_>idleTheadsum_&&total_thread_<threadSizeHold_)
+		{
+			auto thread_ptr = std::make_unique<Thread>(std::bind(&ThreadPool::ThreadHandler_, this));
+			threads_.emplace_back(std::move(thread_ptr));
+			total_thread_++;//线程的总数量++;
+
+
+
+		}
 
 	  return Result(tp,true);;
 }
@@ -90,6 +123,7 @@ void ThreadPool::ThreadHandler_()
 				{
 					return task_queue_.size() > 0;
 				});
+			idleTheadsum_--; //执行任务的时候空闲线程的数量--；
 			task = task_queue_.front();
 			task_queue_.pop();
 			task_sum_--;
@@ -108,9 +142,12 @@ void ThreadPool::ThreadHandler_()
 			std::shared_ptr<Task> t = task;
 
 			t->exec();
+			
 			//t->run();
 
 			}
+		idleTheadsum_++; //线程的任务处理完毕，空闲线程的数量要进行++
+		total_thread_--;//任务执行完毕之后—该任务线程被释放，所以线程池的任务总数量要--
 	}
 	//std::cout << "线程：" << std::this_thread::get_id() << "现在正在运行";
 }
