@@ -23,23 +23,21 @@ class ThreadPool
 {
 public:
 	void start(int initTthread_num);
-	//构造函数
-	ThreadPool();
+	      
+	ThreadPool();                //构造函数
 
 	void setMode(enum  Pool);
-	//设置任务上限阈值
+	                            //设置任务上限阈值
 	void setTaskinit(int sum);  //任务数量的初始化
-
-	//线程数量的上线阈值 cached 模式下创建线程要有一个阈值
 	
-	//用户自定义设置线程上线的数量
-	void setTheadsizeHold(int size);
+	
+	void setTheadsizeHold(int size);   //用户自定义设置线程上线的数量
 
-	//提交任务
-    Result submitTask(std::shared_ptr<Task> tp);
+	
+    Result submitTask(std::shared_ptr<Task> tp);  //提交任务
 	~ThreadPool();
-	//线程池的任务处理函数-从任务队列中取出任务并执行
-	void ThreadHandler_();
+	
+	void ThreadHandler_();             //线程池的任务处理函数-从任务队列中取出任务并执行
 	ThreadPool(const ThreadPool& thread) = delete;
 	ThreadPool& operator=(const ThreadPool& tp) = delete;
 private:

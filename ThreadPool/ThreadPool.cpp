@@ -2,6 +2,7 @@
 #include "ThreadPool.h"
 #include <functional>
 #include <iostream>
+#include <chrono>
 #include  "Result.h"
 
 const int TASK_MAX = 1024;
@@ -113,11 +114,41 @@ ThreadPool::~ThreadPool()
 //消费任务
 void ThreadPool::ThreadHandler_()
 {
+	
+	auto lastTime = std::chrono::high_resolution_clock::now();
 	for (;;)
 	{
 		std::shared_ptr<Task> task;
 		{
+
+			/*
+			cached 模型下线程数量是动态创建的，当空闲线程的时间了超过60s后，要对该空闲的线程进行回收。
+			*/
 			//先获取锁
+
+			//cached 模式下的处理
+			if (poolMode_ == Pool::cached)
+			{
+				//没一秒钟返回 返回的过程如何区分超时的返回？
+				std::unique_lock<std::mutex>lock(mutex_);
+				while (task_sum_>0)
+				{
+
+					//当前线程的等待时间是否超时了
+					if (std::cv_status::timeout == cond_not_empty.wait_for(lock, std::chrono::seconds(1)))
+					{
+
+						//超时返回了  就需要计算一下当前的时间
+						auto now= std::chrono::high_resolution_clock::now();
+						auto timer_ = now - lastTime;// lastTime表示上一次最后的执行时间。
+					}
+
+
+				}
+
+			}
+
+
 			std::unique_lock<std::mutex>lock(mutex_);
 			cond_not_empty.wait(lock, [&]()->bool
 				{
@@ -142,12 +173,10 @@ void ThreadPool::ThreadHandler_()
 			std::shared_ptr<Task> t = task;
 
 			t->exec();
-			
-			//t->run();
-
 			}
-		idleTheadsum_++; //线程的任务处理完毕，空闲线程的数量要进行++
-		total_thread_--;//任务执行完毕之后—该任务线程被释放，所以线程池的任务总数量要--
+		lastTime=std::chrono::high_resolution_clock::now(); //更新线程执行完任务的时间。
+		idleTheadsum_++;                                    //线程的任务处理完毕，空闲线程的数量要进行++
+		total_thread_--;                                    //任务执行完毕之后—该任务线程被释放，所以线程池的任务总数量要--
 	}
 	//std::cout << "线程：" << std::this_thread::get_id() << "现在正在运行";
 }
