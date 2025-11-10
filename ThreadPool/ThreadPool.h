@@ -53,6 +53,7 @@ private:
 	std::mutex mutex_;             //保证任务队列的线程安全。
 	std::condition_variable cond_not_Full;  //表示任务队列池没有满。
 	std::condition_variable cond_not_empty; //表示任务队列不空。
+	std::condition_variable exit_cond_;		//等待所有的线程资源全部回收。
 
 	///线程任务相关
 	//std::vector<std::unique_ptr<Thread>>  threads_;	       //线程列表

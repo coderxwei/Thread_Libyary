@@ -111,76 +111,82 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> tp)
 		}
 		return Result(tp,true);
 }
-
-
 ///析构函数 ---线程池对象析构之后，回收所有的线程资源
 ThreadPool::~ThreadPool()
 {
-	//通知所有的线程执行任务
+	if (bootRuning_)
+	{
+		bootRuning_ = false;
+	}
 	cond_not_empty.notify_all();
-
+	//通知所有的线程执行任务
+	std::unique_lock<std::mutex>lock (mutex_);
+	exit_cond_.wait(lock, [&]()->bool
+		{
+			return  threads_.size() ==0;
+		});
 }
 ///-----------------------消费任务
 void ThreadPool::ThreadHandler_(int threadID)
 {
 	
 	auto lastTime = std::chrono::high_resolution_clock::now();
-	for (;;)
+	while (bootRuning_) //当boolRuning 为true 时表示线程处于正在运行的状态。
 	{
 		std::shared_ptr<Task> task;
 		{
-
 			/*
 			cached 模型下线程数量是动态创建的，当空闲线程的时间了超过60s后，要对该空闲的线程进行回收。
 			*/
 			//先获取锁
 			//cached 模式下的处理
-			if (poolMode_ == Pool::CACHED)
+			std::unique_lock<std::mutex>lock(mutex_);
+			while (task_queue_.size() == 0)
 			{
-				            //没一秒钟返回 返回的过程如何区分超时的返回？
-				std::unique_lock<std::mutex>lock(mutex_);
-				while (task_sum_>0)
+				if (poolMode_ == Pool::CACHED)
 				{
-
-					        //当前线程的等待时间是否超时了
+					//没一秒钟返回 返回的过程如何区分超时的返回？
+					//当前线程的等待时间是否超时了
 					if (std::cv_status::timeout == cond_not_empty.wait_for(lock, std::chrono::seconds(1)))
 					{
-
-						    //超时返回了，就需要计算一下当前的时间
-						auto now= std::chrono::high_resolution_clock::now();
-						auto timer_ = std::chrono::duration_cast<std::chrono::seconds>(now-lastTime) ;// lastTime表示上一次最后的执行时间。
-						if (timer_.count()>=60&&total_thread_>initThreadnum_)
+						//超时返回了，就需要计算一下当前的时间
+						auto now = std::chrono::high_resolution_clock::now();
+						auto timer_ = std::chrono::duration_cast<std::chrono::seconds>(now - lastTime);// lastTime表示上一次最后的执行时间。
+						if (timer_.count() >= 60 && total_thread_ > initThreadnum_)
 						{
 							//回收当前的线程？
-							
-
 							//把线程对象从线程列表的容器中删除 pair----->(threadID，Thread)
 							threads_.erase(threadID);
 							//记录当前线程相关数据的值需要进行修改
 							thread_sum_--;
 							idleTheadsum_--;
-
 							return;
 						}
 					}
+				}
+				//表示为FIXED 模式
+				else
+				{
+					cond_not_empty.wait(lock);
+				}
+				//如果线程不在运行，那么从线程池删去该线程
 
-
+				if (!bootRuning_)
+				{
+					threads_.erase(threadID);
+					//记录当前线程相关数据的值需要进行修改
+					thread_sum_--;
+					idleTheadsum_--;
+					exit_cond_.notify_all();//要通知主线程子线程已经释放了，不然主线程会一直处于阻塞中
+					return;
 				}
 
 			}
-
-
-			std::unique_lock<std::mutex>lock(mutex_);
-			cond_not_empty.wait(lock, [&]()->bool
-				{
-					return task_queue_.size() > 0;
-				});
 			idleTheadsum_--; //执行任务的时候空闲线程的数量--；
 			task = task_queue_.front();
 			task_queue_.pop();
 			task_sum_--;
-
-			                 //线程的队列不是空的
+			//线程的队列不是空的
 			if (task_queue_.size()>0)
 			{
 				cond_not_empty.notify_all();
@@ -189,10 +195,8 @@ void ThreadPool::ThreadHandler_(int threadID)
 			cond_not_Full.notify_all();
 		}
 			//释放锁后再次执行
-		if (task != nullptr)
-			{
+		if (task != nullptr){
 			std::shared_ptr<Task> t = task;
-
 			t->exec();
 			}
 		lastTime=std::chrono::high_resolution_clock::now(); //更新线程执行完任务的时间。
@@ -200,6 +204,8 @@ void ThreadPool::ThreadHandler_(int threadID)
 		total_thread_--;                                    //任务执行完毕之后—该任务线程被释放，所以线程池的任务总数量要--
 	}
 	//std::cout << "线程：" << std::this_thread::get_id() << "现在正在运行";
+	threads_.erase(threadID);
+	std::cout << "回收线程threadId" << std::this_thread::get_id() << std::endl;
 }
 
 ///线程资源的回收
