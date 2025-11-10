@@ -1,6 +1,6 @@
 #pragma once
 enum class Pool
 {
-	fixed,    //fix thread_num
-	cached		// dynamic thead_num 
+	FIXED,    //fix thread_num
+	CACHED		// dynamic thead_num 
 };

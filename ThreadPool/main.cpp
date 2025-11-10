@@ -51,14 +51,15 @@ int main()
 	pool.submitTask(mytask_);
 	pool.submitTask(mytask_);
 	pool.submitTask(mytask_);
-
-	
 	Result res= pool.submitTask(std::make_shared<mytaks>(1,300));
 	int sum=res.getValue().cast_<int>();
 
 	std::cout << "sum=" << sum << std::endl;
 
 	std::this_thread::sleep_for(std::chrono::seconds(5));
+
+	///当线程池释放的时候线程的资源怎么回收。
+
 	return 0;
 }
 
