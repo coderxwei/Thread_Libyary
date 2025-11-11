@@ -9,7 +9,6 @@
 #include  <atomic>
 #include <functional>
 #include "Any.h"
-#include "ThreadPool.h"
 #include "const.h"
 #include "Result.h"
 #include "Task.h"

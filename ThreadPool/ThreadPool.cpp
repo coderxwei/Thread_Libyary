@@ -88,7 +88,6 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> tp)
 	  std::cout << "task queue is error";
 	  return  Result(tp, false);
   }
-
 		task_queue_.emplace(tp);
 		task_sum_++;
 		cond_not_empty.notify_all();
@@ -109,18 +108,20 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> tp)
 			total_thread_++;	//线程的总数量++;
 			idleTheadsum_++;	//刚创建的线程都是空闲线程。
 		}
-		return Result(tp,true);
+		return Result(tp);
 }
 ///析构函数 ---线程池对象析构之后，回收所有的线程资源
 ThreadPool::~ThreadPool()
 {
-	if (bootRuning_)
-	{
-		bootRuning_ = false;
-	}
-	cond_not_empty.notify_all();
-	//通知所有的线程执行任务
-	std::unique_lock<std::mutex>lock (mutex_);
+	bootRuning_ = false;
+	/*
+	先获得锁	，然后通知其他正在wait的线程
+	*/
+	std::unique_lock<std::mutex>lock(mutex_);
+
+    cond_not_empty.notify_all();   //ntify_all的位置必须在获得锁之后才能执行，要不然执行notify后其他线程没有获得到做，相当于白做，而wait的线程就形成死锁。。
+
+	///这里如果有线程没有释放就会一直阻塞。
 	exit_cond_.wait(lock, [&]()->bool
 		{
 			return  threads_.size() ==0;
@@ -170,18 +171,12 @@ void ThreadPool::ThreadHandler_(int threadID)
 					cond_not_empty.wait(lock);
 				}
 				//如果线程不在运行，那么从线程池删去该线程
-
-				if (!bootRuning_)
-				{
-					threads_.erase(threadID);
-					//记录当前线程相关数据的值需要进行修改
-					thread_sum_--;
-					idleTheadsum_--;
-					exit_cond_.notify_all();//要通知主线程子线程已经释放了，不然主线程会一直处于阻塞中
-					return;
-				}
-
 			}
+			if (!bootRuning_)
+			{
+				break;
+			}
+			
 			idleTheadsum_--; //执行任务的时候空闲线程的数量--；
 			task = task_queue_.front();
 			task_queue_.pop();
@@ -201,11 +196,12 @@ void ThreadPool::ThreadHandler_(int threadID)
 			}
 		lastTime=std::chrono::high_resolution_clock::now(); //更新线程执行完任务的时间。
 		idleTheadsum_++;                                    //线程的任务处理完毕，空闲线程的数量要进行++
-		total_thread_--;                                    //任务执行完毕之后—该任务线程被释放，所以线程池的任务总数量要--
+	                                  //任务执行完毕之后—该任务线程被释放，所以线程池的任务总数量要--
 	}
 	//std::cout << "线程：" << std::this_thread::get_id() << "现在正在运行";
 	threads_.erase(threadID);
 	std::cout << "回收线程threadId" << std::this_thread::get_id() << std::endl;
+	exit_cond_.notify_all();//要通知主线程子线程已经释放了，不然主线程会一直处于阻塞中
 }
 
 ///线程资源的回收
