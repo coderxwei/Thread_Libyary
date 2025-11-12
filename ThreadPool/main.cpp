@@ -48,10 +48,10 @@ int main()
 	{
 		ThreadPool pool;
 		pool.start(4);
-		std::shared_ptr<Task>mytask_ = std::make_shared<mytaks>(1, 100);
-		pool.submitTask(mytask_);
-		pool.submitTask(mytask_);
-		pool.submitTask(mytask_);
+	 //	std::shared_ptr<Task>mytask_ = std::make_shared<mytaks>(1, 100);
+	 //	pool.submitTask(mytask_);
+	 //	pool.submitTask(mytask_);
+	 //	pool.submitTask(mytask_);
 		Result res = pool.submitTask(std::make_shared<mytaks>(1, 300));
 
 		int sum = res.getValue().cast_<int>();

@@ -113,19 +113,22 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> tp)
 ///析构函数 ---线程池对象析构之后，回收所有的线程资源
 ThreadPool::~ThreadPool()
 {
+
+	std::cout<<"析构函数执行了"<<std::endl;
 	bootRuning_ = false;
 	/*
 	先获得锁	，然后通知其他正在wait的线程
 	*/
 	std::unique_lock<std::mutex>lock(mutex_);
-
+	std::cout<<"获得了锁用于通知其他线程"<<std::this_thread::get_id<<std::endl;
     cond_not_empty.notify_all();   //ntify_all的位置必须在获得锁之后才能执行，要不然执行notify后其他线程没有获得到做，相当于白做，而wait的线程就形成死锁。。
-
 	///这里如果有线程没有释放就会一直阻塞。
 	exit_cond_.wait(lock, [&]()->bool
 		{
-			return  threads_.size() ==0;
+			std::cout << "还剩下多少个线程" << threads_.size();
+			return  threads_.size() ==0;  //
 		});
+	std::cout<<"还剩下多少个线程" << threads_.size();
 }
 ///-----------------------消费任务
 void ThreadPool::ThreadHandler_(int threadID)
@@ -142,6 +145,8 @@ void ThreadPool::ThreadHandler_(int threadID)
 			//先获取锁
 			//cached 模式下的处理
 			std::unique_lock<std::mutex>lock(mutex_);
+		    std::cout << "线程：" << std::this_thread::get_id()<<"加锁了" << std::endl;
+
 			while (task_queue_.size() == 0)
 			{
 				if (poolMode_ == Pool::CACHED)
@@ -184,21 +189,23 @@ void ThreadPool::ThreadHandler_(int threadID)
 			//线程的队列不是空的
 			if (task_queue_.size()>0)
 			{
-				cond_not_empty.notify_all();
-			}
-			                 //消费一个任务后，任务队列不满 通知添加任务。
-			cond_not_Full.notify_all();
+				cond_not_empty.notify_all();     //继续通知其他wait 的线程继续消费任务。
+			}             
+			    cond_not_Full.notify_all();      //消费任务，通知提交任务的现成继续提交任务。
 		}
+		std::cout << "线程解锁了" << std::this_thread::get_id() <<std::endl;
 			//释放锁后再次执行
 		if (task != nullptr){
 			std::shared_ptr<Task> t = task;
 			t->exec();
 			}
 		lastTime=std::chrono::high_resolution_clock::now(); //更新线程执行完任务的时间。
-		idleTheadsum_++;                                    //线程的任务处理完毕，空闲线程的数量要进行++
-	                                  //任务执行完毕之后—该任务线程被释放，所以线程池的任务总数量要--
+		idleTheadsum_++;     
+		threads_.erase(threadID);
+		std::cout << "回收线程threadId" << std::this_thread::get_id() << std::endl;
+		exit_cond_.notify_all();//要通知主线程子线程已经释放了，不然主线程会一直处于阻塞中//线程的任务处理完毕，空闲线程的数量要进行++
+	                                                        //任务执行完毕之后—该任务线程被释放，所以线程池的任务总数量要--
 	}
-	//std::cout << "线程：" << std::this_thread::get_id() << "现在正在运行";
 	threads_.erase(threadID);
 	std::cout << "回收线程threadId" << std::this_thread::get_id() << std::endl;
 	exit_cond_.notify_all();//要通知主线程子线程已经释放了，不然主线程会一直处于阻塞中
