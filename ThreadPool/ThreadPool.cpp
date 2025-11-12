@@ -110,6 +110,9 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> tp)
 		}
 		return Result(tp);
 }
+
+
+
 ///析构函数 ---线程池对象析构之后，回收所有的线程资源
 ThreadPool::~ThreadPool()
 {
@@ -130,6 +133,9 @@ ThreadPool::~ThreadPool()
 		});
 	std::cout<<"还剩下多少个线程" << threads_.size();
 }
+
+
+
 ///-----------------------消费任务
 void ThreadPool::ThreadHandler_(int threadID)
 {
@@ -149,6 +155,12 @@ void ThreadPool::ThreadHandler_(int threadID)
 
 			while (task_queue_.size() == 0)
 			{
+				if (!bootRuning_)
+				{
+					threads_.erase(threadID);
+					exit_cond_.notify_all();
+					return;
+				}
 				if (poolMode_ == Pool::CACHED)
 				{
 					//没一秒钟返回 返回的过程如何区分超时的返回？
@@ -164,7 +176,7 @@ void ThreadPool::ThreadHandler_(int threadID)
 							//把线程对象从线程列表的容器中删除 pair----->(threadID，Thread)
 							threads_.erase(threadID);
 							//记录当前线程相关数据的值需要进行修改
-							thread_sum_--;
+							total_thread_--;
 							idleTheadsum_--;
 							return;
 						}
@@ -176,12 +188,10 @@ void ThreadPool::ThreadHandler_(int threadID)
 					cond_not_empty.wait(lock);
 				}
 				//如果线程不在运行，那么从线程池删去该线程
-			}
-			if (!bootRuning_)
-			{
-				break;
-			}
-			
+		    }
+			//当任务的队列不为空时，就取出任务。
+
+
 			idleTheadsum_--; //执行任务的时候空闲线程的数量--；
 			task = task_queue_.front();
 			task_queue_.pop();
@@ -190,25 +200,33 @@ void ThreadPool::ThreadHandler_(int threadID)
 			if (task_queue_.size()>0)
 			{
 				cond_not_empty.notify_all();     //继续通知其他wait 的线程继续消费任务。
-			}             
-			    cond_not_Full.notify_all();      //消费任务，通知提交任务的现成继续提交任务。
+			}  
+
+			cond_not_Full.notify_all();      //消费任务，通知提交任务的现成继续提交任务。
 		}
+
+
 		std::cout << "线程解锁了" << std::this_thread::get_id() <<std::endl;
+
+
+		//这里是线程-------------------任务执行。
 			//释放锁后再次执行
 		if (task != nullptr){
 			std::shared_ptr<Task> t = task;
 			t->exec();
 			}
+
 		lastTime=std::chrono::high_resolution_clock::now(); //更新线程执行完任务的时间。
 		idleTheadsum_++;     
-		threads_.erase(threadID);
-		std::cout << "回收线程threadId" << std::this_thread::get_id() << std::endl;
-		exit_cond_.notify_all();//要通知主线程子线程已经释放了，不然主线程会一直处于阻塞中//线程的任务处理完毕，空闲线程的数量要进行++
+		//threads_.erase(threadID);
+		//std::cout << "回收线程threadId" << std::this_thread::get_id() << std::endl;
+		//exit_cond_.notify_all();//要通知主线程子线程已经释放了，不然主线程会一直处于阻塞中//线程的任务处理完毕，空闲线程的数量要进行++
 	                                                        //任务执行完毕之后—该任务线程被释放，所以线程池的任务总数量要--
 	}
-	threads_.erase(threadID);
-	std::cout << "回收线程threadId" << std::this_thread::get_id() << std::endl;
-	exit_cond_.notify_all();//要通知主线程子线程已经释放了，不然主线程会一直处于阻塞中
+//	threads_.erase(threadID);
+//	std::cout << "回收线程threadId" << std::this_thread::get_id() << std::endl;
+//	exit_cond_.notify_all();//要通知主线程子线程已经释放了，不然主线程会一直处于阻塞中
+//
 }
 
 ///线程资源的回收

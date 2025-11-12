@@ -7,7 +7,8 @@
  void Task::exec()
 {
 	if (result_!=nullptr)
-	{
+	{	
+		//Ö´ÐÐrun·½·¨¡£
 		result_->setValue(run());
 	}
 }
