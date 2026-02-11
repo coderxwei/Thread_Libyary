@@ -14,7 +14,7 @@ public:
     Result(std::shared_ptr<Task> task, bool isValid = true);
     ~Result() = default;
 
-    // 设置任务执行完毕后的返回值
+    // 设置任务执行完毕后的返回值，线程池里的线程跑完用户的任务后，会调用这个函数。
     void setValue(Any any)
     {
         this->any_ = std::move(any);

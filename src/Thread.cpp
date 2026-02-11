@@ -9,10 +9,12 @@ Thread::Thread(ThreadFunc func)
 {
 }
 
+//线程的析构
 Thread::~Thread()
 {
 }
 
+//线程开始执行。
 void Thread::start()
 {
     // 创建一个新线程并分离执行

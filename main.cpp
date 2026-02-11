@@ -4,6 +4,10 @@
 #include "Task.h"
 #include "ThreadPool.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 // 示例：自定义任务类，计算 [begin, end) 范围内整数之和
 class SumTask : public Task
 {
@@ -33,6 +37,11 @@ private:
 
 int main()
 {
+#ifdef _WIN32
+    // 设置控制台输出编码为 UTF-8，解决中文乱码
+    SetConsoleOutputCP(65001);
+#endif
+
     {
         ThreadPool pool;
         pool.start(4);

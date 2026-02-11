@@ -4,6 +4,11 @@ project(ThreadPool LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# 解决 MSVC 中文乱码问题：指定源文件和执行字符集均为 UTF-8
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 # 头文件目录
 include_directories(${PROJECT_SOURCE_DIR}/include)
 

@@ -43,9 +43,13 @@ void ThreadPool::start(int initThreadNum)
     // 创建线程对象
     for (int i = 0; i < initThreadNum; i++)
     {
+        // Thread(param: myboundfunc)
+        //myboundfunc=std::bind(&ThreadPool::threadHandler, this, std::placeholders::_1)
         auto threadPtr = std::make_unique<Thread>(
             std::bind(&ThreadPool::threadHandler, this, std::placeholders::_1));
+        //获取当前线程的id
         int threadId = threadPtr->getId();
+        //把当前的线程id 和对象的线程指针加入到线程池中。 线程池是一个hashtable(unordered_map)
         threads_.emplace(threadId, std::move(threadPtr));
         totalThreadNum_++;
     }
@@ -101,6 +105,7 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> task)
     taskNum_++;
     condNotEmpty_.notify_all();
 
+    //消费任务
     // CACHED 模式下：当任务数量 > 空闲线程数量，且未超过线程上限时，动态创建新线程
     if (poolMode_ == PoolMode::CACHED
         && taskNum_ > idleThreadNum_
@@ -121,6 +126,7 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> task)
 // 线程池工作线程的任务处理函数
 void ThreadPool::threadHandler(int threadID)
 {
+    //这个精度很高 用于记录线程上一次处理最后的执行时间。
     auto lastTime = std::chrono::high_resolution_clock::now();
 
     while (isRunning_)
