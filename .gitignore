@@ -1,3 +1,4 @@
+# Visual Studio
 .vs/
 *.obj
 *.pdb
@@ -7,3 +8,17 @@
 Debug/
 Release/
 x64/
+
+# CLion / CMake
+.idea/
+cmake-build-*/
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cbp
+
+# OS generated
+.DS_Store
+Thumbs.db
