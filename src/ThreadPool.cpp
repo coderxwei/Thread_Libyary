@@ -8,7 +8,6 @@ const int TASK_MAX = 1024;
 // 构造函数
 ThreadPool::ThreadPool()
     : initThreadNum_(4)
-    , taskNum_(0)
     , poolMode_(PoolMode::FIXED)
     , taskQueueMaxSize_(TASK_MAX)
     , isRunning_(false)
@@ -102,13 +101,11 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> task)
 
     // 将任务放入队列
     taskQueue_.emplace(task);
-    taskNum_++;
     condNotEmpty_.notify_all();
 
-    //消费任务
     // CACHED 模式下：当任务数量 > 空闲线程数量，且未超过线程上限时，动态创建新线程
     if (poolMode_ == PoolMode::CACHED
-        && taskNum_ > idleThreadNum_
+        && (int)taskQueue_.size() > idleThreadNum_
         && totalThreadNum_ < threadSizeThreshold_)
     {
         auto threadPtr = std::make_unique<Thread>(
@@ -126,10 +123,9 @@ Result ThreadPool::submitTask(std::shared_ptr<Task> task)
 // 线程池工作线程的任务处理函数
 void ThreadPool::threadHandler(int threadID)
 {
-    //这个精度很高 用于记录线程上一次处理最后的执行时间。
     auto lastTime = std::chrono::high_resolution_clock::now();
 
-    while (isRunning_)
+    for (;;)
     {
         std::shared_ptr<Task> task;
         {
@@ -137,17 +133,16 @@ void ThreadPool::threadHandler(int threadID)
 
             while (taskQueue_.size() == 0)
             {
-                // 线程池已停止，退出线程
                 if (!isRunning_)
                 {
                     threads_.erase(threadID);
+                    totalThreadNum_--;
                     exitCond_.notify_all();
                     return;
                 }
 
                 if (poolMode_ == PoolMode::CACHED)
                 {
-                    // CACHED 模式：每秒检查一次，超过60秒空闲则回收线程
                     if (std::cv_status::timeout ==
                         condNotEmpty_.wait_for(lock, std::chrono::seconds(1)))
                     {
@@ -156,7 +151,6 @@ void ThreadPool::threadHandler(int threadID)
 
                         if (duration.count() >= 60 && totalThreadNum_ > (int)initThreadNum_)
                         {
-                            // 回收当前空闲线程
                             threads_.erase(threadID);
                             totalThreadNum_--;
                             idleThreadNum_--;
@@ -166,34 +160,27 @@ void ThreadPool::threadHandler(int threadID)
                 }
                 else
                 {
-                    // FIXED 模式：阻塞等待任务
                     condNotEmpty_.wait(lock);
                 }
             }
 
-            // 从任务队列中取出任务
             idleThreadNum_--;
             task = taskQueue_.front();
             taskQueue_.pop();
-            taskNum_--;
 
-            // 如果队列中仍有任务，继续通知其他线程消费
             if (taskQueue_.size() > 0)
             {
                 condNotEmpty_.notify_all();
             }
 
-            // 通知提交方可以继续提交任务
             condNotFull_.notify_all();
         }
 
-        // 释放锁后执行任务
         if (task != nullptr)
         {
             task->exec();
         }
 
-        // 更新线程最后执行时间
         lastTime = std::chrono::high_resolution_clock::now();
         idleThreadNum_++;
     }

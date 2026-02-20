@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <stdexcept>
 
 // 类型擦除容器类，类似于 std::any
 class Any
@@ -29,7 +30,7 @@ public:
         Derived<T>* pd = dynamic_cast<Derived<T>*>(base_.get());
         if (pd == nullptr)
         {
-            throw "type is not match";
+            throw std::runtime_error("type is not match");
         }
         return pd->data_;
     }

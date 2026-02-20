@@ -25,7 +25,7 @@ public:
     {
         std::unique_lock<std::mutex> lock(mutex_);
         resLimit_++;
-        condition_.notify_all();
+        condition_.notify_one();
     }
 
 private:

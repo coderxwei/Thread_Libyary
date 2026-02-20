@@ -56,7 +56,6 @@ private:
 
     // 任务队列相关
     std::queue<std::shared_ptr<Task>> taskQueue_;   // 任务队列
-    std::atomic_uint taskNum_;                       // 当前任务数量
     int taskQueueMaxSize_;                           // 任务队列上限
 
     // 线程同步

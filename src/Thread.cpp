@@ -1,7 +1,7 @@
 #include "Thread.h"
 #include <thread>
 
-int Thread::generatedId_ = 0;
+std::atomic<int> Thread::generatedId_{0};
 
 Thread::Thread(ThreadFunc func)
     : func_(func)
